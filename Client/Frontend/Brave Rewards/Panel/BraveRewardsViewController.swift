@@ -140,10 +140,10 @@ class BraveRewardsViewController: UIViewController, Themeable, PopoverContentCom
         rewardsView.legacyWalletTransferButton.addTarget(self, action: #selector(tappedRewardsTransfer), for: .touchUpInside)
         rewardsView.legacyWalletTransferButton.dismissButton.addTarget(self, action: #selector(tappedDismissRewardsTransfer), for: .touchUpInside)
         
-        view.snp.makeConstraints {
-            $0.width.equalTo(360)
-            $0.height.equalTo(rewardsView)
-        }
+//        view.snp.makeConstraints {
+//            $0.width.equalTo(360)
+//            $0.height.equalTo(rewardsView)
+//        }
         
         if !AppConstants.buildChannel.isPublic {
             let tapGesture = UITapGestureRecognizer(target: self, action: #selector(tappedHostLabel(_:)))

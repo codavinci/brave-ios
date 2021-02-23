@@ -21,6 +21,9 @@ import SafariServices
 import BraveUI
 import NetworkExtension
 import YubiKit
+#if canImport(SwiftUI)
+import SwiftUI
+#endif
 
 private let log = Logger.browserLogger
 
@@ -2431,11 +2434,85 @@ extension BrowserViewController: ToolbarDelegate {
     }
     
     func tabToolbarDidPressMenu(_ tabToolbar: ToolbarProtocol) {
-        let homePanel = MenuViewController(bvc: self, tab: tabManager.selectedTab)
-        let popover = PopoverController(contentController: homePanel, contentSizeBehavior: .preferredContentSize)
-        // Not dynamic, but trivial at this point, given how UI is currently setup
-        popover.color = Theme.of(tabManager.selectedTab).colors.home
-        popover.present(from: tabToolbar.menuButton, on: self)
+        if #available(iOS 13.0, *) {
+            let selectedTabURL: String? = {
+                guard let url = tabManager.selectedTab?.url, !url.isLocal || url.isReaderModeURL else { return nil }
+                return url.baseDomain
+            }()
+            let menuController = NewMenuController(content: { menuController in
+                VStack(spacing: 6) {
+                    VStack(spacing: 0) {
+                        MenuItemButton(icon: MenuButton.rewards.icon, title: MenuButton.rewards.title) {
+                            guard let tab = self.tabManager.selectedTab else { return }
+                            let vc = BraveRewardsViewController(tab: tab, rewards: self.rewards, legacyWallet: self.legacyWallet)
+                            menuController.pushViewController(vc, animated: true)
+                        }
+                        VPNView(icon: #imageLiteral(resourceName: "vpn_menu_icon").template, title: "Brave VPN", vpnProductInfo: self.vpnProductInfo) { vc in
+                            self.dismiss(animated: true) {
+                                self.present(vc, animated: true)
+                            }
+                        }
+                    }
+                    Divider()
+                    VStack(spacing: 0) {
+                        MenuItemButton(icon: MenuButton.bookmarks.icon.template, title: MenuButton.bookmarks.title) {
+                            let vc = BookmarksViewController(folder: Bookmarkv2.lastVisitedFolder(), isPrivateBrowsing: PrivateBrowsingManager.shared.isPrivateBrowsing)
+                            vc.toolbarUrlActionsDelegate = self
+                            menuController.presentInnerMenu(vc)
+                        }
+                        MenuItemButton(icon: MenuButton.history.icon.template, title: MenuButton.history.title) {
+                            let vc = HistoryViewController(isPrivateBrowsing: PrivateBrowsingManager.shared.isPrivateBrowsing)
+                            vc.toolbarUrlActionsDelegate = self
+                            menuController.pushViewController(vc, animated: true)
+                        }
+                        MenuItemButton(icon: MenuButton.downloads.icon.template, title: MenuButton.downloads.title) {
+                            let vc = DownloadsPanel(profile: self.profile)
+                            menuController.pushViewController(vc, animated: true)
+                        }
+                    }
+                    if let tabURL = selectedTabURL {
+                        Divider()
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text(verbatim: tabURL)
+                                .font(.callout)
+                                .fontWeight(.medium)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 6)
+                            VStack(spacing: 0) {
+                                MenuItemButton(icon: MenuButton.add.icon.template, title: MenuButton.add.title) {
+                                    guard let tab = self.tabManager.selectedTab, let url = tab.url else { return }
+                                    
+                                    let bookmarkUrl = url.decodeReaderModeURL ?? url
+                                    
+                                    let mode = BookmarkEditMode.addBookmark(title: tab.displayTitle, url: bookmarkUrl.absoluteString)
+                                    
+                                    let vc = AddEditBookmarkTableViewController(mode: mode)
+                                    self.dismiss(animated: true) {
+                                        self.present(vc, animated: true)
+                                    }
+                                }
+                                MenuItemButton(icon: MenuButton.share.icon.template, title: MenuButton.share.title) {
+                                    self.dismiss(animated: true)
+                                    self.tabToolbarDidPressShare()
+                                }
+                            }
+                        }
+                    }
+                    Divider()
+                    MenuItemButton(icon: MenuButton.settings.icon.template, title: MenuButton.settings.title) {
+                        let vc = SettingsViewController(profile: self.profile, tabManager: self.tabManager, feedDataSource: self.feedDataSource, rewards: self.rewards, legacyWallet: self.legacyWallet)
+                        vc.settingsDelegate = self
+                        menuController.pushViewController(vc, animated: true)
+                    }
+                }
+            })
+            presentPanModal(menuController, sourceView: tabToolbar.menuButton, sourceRect: tabToolbar.menuButton.bounds)
+        }
+//        let homePanel = MenuViewController(bvc: self, tab: tabManager.selectedTab)
+//        let popover = PopoverController(contentController: homePanel, contentSizeBehavior: .preferredContentSize)
+//        // Not dynamic, but trivial at this point, given how UI is currently setup
+//        popover.color = Theme.of(tabManager.selectedTab).colors.home
+//        popover.present(from: tabToolbar.menuButton, on: self)
     }
     
     func tabToolbarDidPressAddTab(_ tabToolbar: ToolbarProtocol, button: UIButton) {
