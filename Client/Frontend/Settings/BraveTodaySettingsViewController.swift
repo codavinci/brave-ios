@@ -43,7 +43,16 @@ class BraveTodaySettingsViewController: TableViewController {
         dataSource.sections = [
             .init(
                 rows: [
-                    .boolRow(title: Strings.BraveToday.isEnabledToggleLabel, option: Preferences.BraveToday.isEnabled)
+                    .boolRow(title: Strings.BraveToday.isEnabledToggleLabel, option: Preferences.BraveToday.isEnabled, onValueChange: { value in
+                        if value {
+                            Preferences.BraveToday.isShowingOptIn.value = false
+                            Preferences.BraveToday.userOptedIn.value = true
+                        }
+                        Preferences.BraveToday.isEnabled.value = value
+                        if value, self.feedDataSource.shouldLoadContent {
+                            self.feedDataSource.load()
+                        }
+                    })
                 ]
             )
         ]

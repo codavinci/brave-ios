@@ -1586,6 +1586,12 @@ extension Strings {
             value: "Sources & Settings",
             comment: ""
         )
+        public static let turnOnBraveToday = NSLocalizedString(
+            "today.turnOnBraveToday",
+            bundle: .braveShared,
+            value: "Turn on Brave Today",
+            comment: ""
+        )
         public static let learnMoreTitle = NSLocalizedString(
             "today.learnMoreTitle",
             bundle: .braveShared,

@@ -98,6 +98,7 @@ class NewTabPageViewController: UIViewController, Themeable {
     
     private let feedDataSource: FeedDataSource
     private let feedOverlayView = NewTabPageFeedOverlayView()
+    private var preventReloadOnBraveTodayEnabledChange = false
     
     private let notifications: NewTabPageNotifications
     
@@ -480,11 +481,18 @@ class NewTabPageViewController: UIViewController, Themeable {
         switch action {
         case .welcomeCardAction(.closedButtonTapped):
             Preferences.BraveToday.isShowingIntroCard.value = false
+            Preferences.BraveToday.isShowingOptIn.value = false
             if let section = layout.braveTodaySection, collectionView.numberOfItems(inSection: section) != 0 {
                 collectionView.deleteItems(at: [IndexPath(item: 0, section: section)])
             }
         case .welcomeCardAction(.learnMoreButtonTapped):
             delegate?.navigateToInput(BraveUX.braveTodayPrivacyURL.absoluteString, inNewTab: false, switchingToPrivateMode: false)
+        case .welcomeCardAction(.turnOnBraveTodayButtonTapped):
+            preventReloadOnBraveTodayEnabledChange = true
+            Preferences.BraveToday.userOptedIn.value = true
+            Preferences.BraveToday.isShowingOptIn.value = false
+            Preferences.BraveToday.isEnabled.value = true
+            loadFeedContents()
         case .welcomeCardAction(.settingsButtonTapped),
              .emptyCardTappedSourcesAndSettings:
             tappedBraveTodaySettings()
@@ -609,7 +617,7 @@ class NewTabPageViewController: UIViewController, Themeable {
     
     @objc private func checkForUpdatedFeed() {
         #if !NO_BRAVE_TODAY
-        if !isBraveTodayVisible { return }
+        if !isBraveTodayVisible || Preferences.BraveToday.isShowingOptIn.value { return }
         if collectionView.contentOffset.y == collectionView.contentInset.top {
             // Reload contents if the user is not currently scrolled into the feed
             loadFeedContents()
@@ -728,12 +736,15 @@ class NewTabPageViewController: UIViewController, Themeable {
 
 extension NewTabPageViewController: PreferencesObserver {
     func preferencesDidChange(for key: String) {
-        collectionView.reloadData()
+        if !preventReloadOnBraveTodayEnabledChange {
+            collectionView.reloadData()
+        }
         if !isBraveTodayVisible {
             collectionView.verticalScrollIndicatorInsets = .zero
             feedOverlayView.headerView.alpha = 0.0
             backgroundButtonsView.alpha = 1.0
         }
+        preventReloadOnBraveTodayEnabledChange = false
     }
 }
 
@@ -744,7 +755,7 @@ extension NewTabPageViewController {
         return false
         #else
         return !PrivateBrowsingManager.shared.isPrivateBrowsing &&
-            Preferences.BraveToday.isEnabled.value
+            (Preferences.BraveToday.isEnabled.value || Preferences.BraveToday.isShowingOptIn.value)
         #endif
     }
     func scrollViewDidScroll(_ scrollView: UIScrollView) {

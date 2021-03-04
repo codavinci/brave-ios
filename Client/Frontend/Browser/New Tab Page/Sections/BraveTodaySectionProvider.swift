@@ -67,10 +67,13 @@ class BraveTodaySectionProvider: NSObject, NTPObservableSectionProvider {
     }
     
     private var isShowingIntroCard: Bool {
-        Preferences.BraveToday.isShowingIntroCard.value
+        Preferences.BraveToday.isShowingIntroCard.value || Preferences.BraveToday.isShowingOptIn.value
     }
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        if Preferences.BraveToday.isShowingOptIn.value {
+            return 1
+        }
         if !Preferences.BraveToday.isEnabled.value {
             return 0
         }
@@ -156,7 +159,11 @@ class BraveTodaySectionProvider: NSObject, NTPObservableSectionProvider {
         
         if isShowingIntroCard && indexPath.item == 0 {
             let cell = collectionView.dequeueReusableCell(for: indexPath) as FeedCardCell<BraveTodayWelcomeView>
+            cell.content.state = Preferences.BraveToday.isShowingOptIn.value ? .optIn : .intro
             cell.content.introCardActionHandler = { [weak self] action in
+                if action == .turnOnBraveTodayButtonTapped && !cell.content.turnOnBraveTodayButton.isLoading {
+                    cell.content.turnOnBraveTodayButton.isLoading = true
+                }
                 self?.actionHandler(.welcomeCardAction(action))
             }
             return cell

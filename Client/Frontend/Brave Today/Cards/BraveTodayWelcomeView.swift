@@ -11,10 +11,29 @@ import Shared
 enum WelcomeCardAction {
     case closedButtonTapped
     case settingsButtonTapped
+    case turnOnBraveTodayButtonTapped
     case learnMoreButtonTapped
 }
 
 class BraveTodayWelcomeView: UIView, FeedCardContent {
+    enum ButtonState {
+        case optIn
+        case intro
+    }
+    
+    var state: ButtonState = .optIn {
+        didSet {
+            switch state {
+            case .intro:
+                turnOnBraveTodayButton.isHidden = true
+                sourcesAndSettingsButton.isHidden = false
+            case .optIn:
+                turnOnBraveTodayButton.isHidden = false
+                sourcesAndSettingsButton.isHidden = true
+            }
+        }
+    }
+    
     private let backgroundView = FeedCardBackgroundView()
     
     private let stackView = UIStackView().then {
@@ -41,6 +60,17 @@ class BraveTodayWelcomeView: UIView, FeedCardContent {
         $0.setTitle(Strings.BraveToday.sourcesAndSettings, for: .normal)
         $0.contentEdgeInsets = UIEdgeInsets(top: 10, left: 20, bottom: 10, right: 20)
         $0.backgroundColor = UIColor.white.withAlphaComponent(0.2)
+    }
+    
+    let turnOnBraveTodayButton = ActionButton().then {
+        $0.layer.borderWidth = 0
+        $0.titleLabel?.font = .systemFont(ofSize: 16.0, weight: .semibold)
+        $0.setTitle(Strings.BraveToday.turnOnBraveToday, for: .normal)
+        $0.contentEdgeInsets = UIEdgeInsets(top: 10, left: 20, bottom: 10, right: 20)
+        $0.backgroundColor = Colors.blurple400
+        $0.loaderView = LoaderView(size: .small).then {
+            $0.tintColor = .white
+        }
     }
     
     private let learnMoreButton = UIButton(type: .system).then {
@@ -81,6 +111,7 @@ class BraveTodayWelcomeView: UIView, FeedCardContent {
                 $0.numberOfLines = 0
             }),
             .customSpace(24),
+            .view(turnOnBraveTodayButton),
             .view(sourcesAndSettingsButton),
             .view(learnMoreButton)
         )
@@ -92,6 +123,7 @@ class BraveTodayWelcomeView: UIView, FeedCardContent {
         closeButton.addTarget(self, action: #selector(tappedCloseButton), for: .touchUpInside)
         learnMoreButton.addTarget(self, action: #selector(tappedLearnMoreButton), for: .touchUpInside)
         sourcesAndSettingsButton.addTarget(self, action: #selector(tappedSettingsButton), for: .touchUpInside)
+        turnOnBraveTodayButton.addTarget(self, action: #selector(tappedTurnOnBraveButton), for: .touchUpInside)
     }
     
     // MARK: - Actions
@@ -106,6 +138,10 @@ class BraveTodayWelcomeView: UIView, FeedCardContent {
     
     @objc private func tappedSettingsButton() {
         introCardActionHandler?(.settingsButtonTapped)
+    }
+    
+    @objc private func tappedTurnOnBraveButton() {
+        introCardActionHandler?(.turnOnBraveTodayButtonTapped)
     }
     
     @available(*, unavailable)
